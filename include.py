@@ -1,7 +1,6 @@
 import subprocess
 from pangolin.ir import RV, Add, Constant, Normal
-
-jags_path = "C:/Program Files/JAGS/JAGS-4.3.1/x64/bin/jags.bat"
+import platform
 
 class Sample_prob:
     class RunDFS:
@@ -78,9 +77,16 @@ class Sample_prob:
             script += "coda *\n"
             f.write(script)
 
-        cmd = f'"{jags_path}" script.txt'
-        output = subprocess.check_output(cmd,  stderr=subprocess.STDOUT).decode()
-        return output
+        system = platform.system()
+        if system == "Windows":
+            jags_path = "C:/Program Files/JAGS/JAGS-4.3.1/x64/bin/jags.bat"
+            cmd = f'"{jags_path}" script.txt'
+            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True).decode()
+        else:  # Linux/macOS
+            cmd = ['jags', 'script.txt']
+            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode()
+        
+        return(output)
     
     def read_coda(self):
         result = {};
