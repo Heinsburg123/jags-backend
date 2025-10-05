@@ -2,6 +2,7 @@ model in "model.bug"
 compile, nchains(1)
 initialize
 update 1000
-monitor v3
+monitor v15
+monitor v18
 update 1000
 coda *

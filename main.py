@@ -3,14 +3,15 @@ from pangolin.ir import RV, Add, Constant, Normal
 from include import Sample_prob
 
 
-x = RV(Constant(3))
-y = RV(Constant(4))
-z = RV(Normal(), x, y)
-k = RV(Add(), z, x)
-
+a = RV(Constant(3.0))
+b = RV(Constant(4.0))
+c = RV(Constant(1.0))
+mu = RV(Add(), a, b)
+y = RV(Normal(), mu, c)
+z = RV(Add(), y, mu)
 sp = Sample_prob()
 
-print(sp.sample(z, {k:7}))
+print(sp.sample([mu, z], {}))
 
 
 

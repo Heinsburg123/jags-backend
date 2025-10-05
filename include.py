@@ -21,11 +21,12 @@ class Sample_prob:
                 self.dfs(nodes[node])
             return self.visited 
 
-    def sample(self, sample_var:RV, kwargs:dict[RV, float|int]):
+    def sample(self, sample_vars:list[RV], kwargs:dict[RV, float|int]):
         dic = {}
         for var in kwargs:
             dic["v"+str(var._n)] = var
-        dic["v"+str(sample_var._n)] = sample_var 
+        for sample_var in sample_vars:
+            dic["v"+str(sample_var._n)] = sample_var 
         app = self.RunDFS()
         res = app.run_dfs(dic)
 
@@ -71,7 +72,8 @@ class Sample_prob:
             script += "compile, nchains(1)\n"
             script += "initialize\n"
             script += "update 1000\n"
-            script += f"monitor {"v"+str(sample_var._n)}\n"
+            for sample_var in sample_vars:
+                script += f"monitor {('v'+str(sample_var._n))}\n"
             script += "update 1000\n"
             script += "coda *\n"
             f.write(script)
@@ -79,3 +81,19 @@ class Sample_prob:
         cmd = f'"{jags_path}" script.txt'
         output = subprocess.check_output(cmd,  stderr=subprocess.STDOUT).decode()
         return output
+    
+    def read_coda(self):
+        result = {};
+        res_lines = [];
+        with open("CODAchain1.txt", "r") as f:
+            res_lines = [line.strip().split() for line in f.readlines()]
+        for i in range(len(res_lines)):
+            res_lines[i] = float(res_lines[i][1])
+        with open("CODAindex.txt", "r") as f:
+            lines = f.readlines()
+            for line in lines:
+                v, start, end  = line.strip().split()
+                result[v] = res_lines[int(start)-1:int(end)];
+        return result;
+
+
