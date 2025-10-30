@@ -1,7 +1,7 @@
 import subprocess
 from pangolin.ir import RV, Add, Constant, Normal
+from  scalar_ops import Scalar_ops
 import platform
-
 class Sample_prob:
     class RunDFS:
         def __init__(self):
@@ -30,44 +30,41 @@ class Sample_prob:
         res = app.run_dfs(dic)
 
         with open( "data.R", "w") as f:
+            for node in res:
+                if type(res[node].op) == Constant and res[node].ndim == 0:
+                    f.write(f"{node} <- {res[node].op.value}\n")
+                elif(type(res[node].op) == Constant and res[node].ndim > 0):
+                    f.write(f"{node}<-structure(c(")
+                    if(res[node].ndim == 1):
+                        for i in range(res[node].shape[0]):
+                            f.write(f"{res[node].op.value[i]},")
+                        f.write(f"),.Dim=c({res[node].shape[0]}))\n")
+                    elif(res[node].ndim == 2):
+                        for i in range(res[node].shape[0]):
+                            for j in range(res[node].shape[1]):
+                                f.write(f"{res[node].op.value[i][j]},")
+                        f.write(f"),.Dim=c({res[node].shape[0]},{res[node].shape[1]}))\n")
             for var in kwargs:
                 f.write(f"{("v"+str(var._n))} <- {kwargs[var]}\n")
             f.close()
-
+        
         with open( "model.bug", "w") as f:
-            f = open("model.bug", "w")
             f.write("model {\n")
             check = {}  
             for node in res: 
                 if node in check:
                     continue
                 check[node] = True
-                if(type(res[node].op) == Constant):
-                    f.write(f"{node} <- {res[node]}\n")
                 if(type(res[node].op) == Add):
-                    parent1 = None
-                    parent2 = None
-                    for node2 in res:
-                        if res[node].parents[0] == res[node2]:
-                            parent1 = str(node2)
-                        if(res[node].parents[1] == res[node2]):
-                            parent2 = str(node2)
-                    f.write(f"{node} <- {parent1} + {parent2}\n") 
+                    f.write(Scalar_ops.Add(node, res)+"\n")
                 if(type(res[node].op) == Normal):
-                    parent1 = None 
-                    parent2 = None
-                    for node2 in res:
-                        if res[node].parents[0] == res[node2]:
-                            parent1 = str(node2)
-                        if(res[node].parents[1] == res[node2]):
-                            parent2 = str(node2)
-                    f.write(f"{node} ~ dnorm({parent1}, {parent2})\n")     
-
+                    f.write(Scalar_ops.Normal(node, res)+"\n")  
             f.write("}\n")                  
             f.close()
 
         with open("script.txt", "w") as f:
             script = 'model in "model.bug"\n'
+            script += 'data in "data.R"\n'
             script += "compile, nchains(1)\n"
             script += "initialize\n"
             script += "update 1000\n"
