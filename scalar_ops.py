@@ -1,6 +1,4 @@
 class Scalar_ops:
-    middle_count = 0; 
-    
     def Constant(n:str, res:dict):
         return f"{n}<-{res[n]}"
 
@@ -54,17 +52,15 @@ class Scalar_ops:
         parent1 = res[n].parents[0];
         return f"{n} ~ dbern(v{parent1._n})"
     
-    def BetaBinomial(self, n:str, res:dict):
+    def BetaBinomial(n:str, res:dict):
         parent1 = res[n].parents[0];
         parent2 = res[n].parents[1];
         parent3 = res[n].parents[2];
-        ++self.middle_count; 
-        return f"{n} ~ dbin(v{parent1._n}, z{self.middle_count})\n z{self.middle_count} ~ dbeta(v{parent2._n}, v{parent3._n})"
+        return f"{n} ~ dbin({n}_5, v{parent1._n})\n{n}_5 ~ dbeta(v{parent2._n}, v{parent3._n})"
     
-    def BernoulliLogit(self, n:str, res:dict):
+    def BernoulliLogit(n:str, res:dict):
         parent1 = res[n].parents[0];
-        ++self.middle_count;
-        return f"{n} ~ dbern(z{self.middle_count})\n logit(z{self.middle_count}) <- v{parent1._n}"
+        return f"{n} ~ dbern({n}_5)\nlogit({n}_5) <- v{parent1._n}"
     
     def Binomial(n:str, res:dict):
         parent1 = res[n].parents[0];
@@ -76,6 +72,10 @@ class Scalar_ops:
         parent2 = res[n].parents[1];
         return f"{n} ~ dunif(v{parent1._n}, v{parent2._n})"
     
+    def Categorical(n:str, res:dict):
+        parent1 = res[n].parents[0];
+        return f"{n} ~ dcat(v{parent1._n})"
+
     def Beta(n:str, res:dict):
         parent1 = res[n].parents[0];
         parent2 = res[n].parents[1];

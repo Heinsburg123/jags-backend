@@ -1,2 +1,4 @@
 model {
+v4 ~ dbin(v4_5, v1)
+v4_5 ~ dbeta(v2, v3)
 }
