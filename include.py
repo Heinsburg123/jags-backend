@@ -1,7 +1,7 @@
 import subprocess
-from pangolin.ir import RV, Add, Constant, Normal, Dirichlet, VMap
+from pangolin.ir import *
 from  scalar_ops import Scalar_ops
-from Multi_funcs import Matrix_funcs
+from Multi_funcs import Multi_funcs
 from flow import flow
 import platform
 class Sample_prob:
@@ -54,6 +54,7 @@ class Sample_prob:
                         f.write(f"),.Dim=c({res[node].shape[0]},{res[node].shape[1]}))\n")
             for var in kwargs:
                 f.write(f"{("v"+str(var._n))} <- {kwargs[var]}\n")
+
             f.close()
         
         with open( "model.bug", "w") as f:
@@ -63,14 +64,14 @@ class Sample_prob:
                 if node in check:
                     continue
                 check[node] = True
-                if(type(res[node].op) == VMap):
-                    code = flow.VMap(node, res)
+                if(flow.__dict__.get(res[node].op.name) is not None):
+                    code = flow.__dict__[res[node].op.name](node, res)
                     f.write(code + "\n")
                 elif(res[node].op.name!="Constant" and Scalar_ops.__dict__.get(res[node].op.name) is not None):
                     code = Scalar_ops.__dict__[res[node].op.name](node, res)
                     f.write(code + "\n")
-                elif(Matrix_funcs.__dict__.get(res[node].op.name) is not None):
-                    code = Matrix_funcs.__dict__[res[node].op.name](node, res)
+                elif(Multi_funcs.__dict__.get(res[node].op.name) is not None):
+                    code = Multi_funcs.__dict__[res[node].op.name](node, res)
                     f.write(code + "\n")
             f.write("}\n")                  
             f.close()

@@ -1,14 +1,13 @@
-class Matrix_funcs:
-    def matmul(n, res:dict):
+class Multi_funcs:
+    def MatMul(n, res:dict):
         parent1 = res[n].parents[0]
         parent2 = res[n].parents[1]
-        return f"{n} <- v{parent1._n} %*% v{parent2._n}"
+        k = parent1.shape[0]
+        m = parent1.shape[1]
+        p = parent2.shape[1]
+        return f"for (i in 1:{k})" + "{\n" + f"for (j in 1:{p})" + "{\n" + f"{n}[i,j]<-inprod(v{parent1._n}[i, 1:{m}], v{parent2._n}[1:{m}, j])\n"+"}\n"+"}\n"
 
-    def transpose(n, res:dict):
-        parent1 = res[n].parents[0]
-        return f"{n} <- t(v{parent1._n})"
-
-    def inverse(n, res:dict):
+    def Inv(n, res:dict):
         parent1 = res[n].parents[0]
         return f"{n} <- solve(v{parent1._n})"
     
