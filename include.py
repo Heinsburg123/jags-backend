@@ -3,6 +3,8 @@ from pangolin.ir import *
 from  scalar_ops import Scalar_ops
 from Multi_funcs import Multi_funcs
 from flow import flow
+from index import index
+import numpy as np
 import platform
 class Sample_prob:
     class RunDFS:
@@ -37,24 +39,21 @@ class Sample_prob:
                     f.write(f"{node} <- {res[node].op.value}\n")
                 elif(type(res[node].op) == Constant and res[node].ndim > 0):
                     f.write(f"{node}<-structure(c(")
-                    if(res[node].ndim == 1):
-                        for i in range(res[node].shape[0]):
-                            if(i == res[node].shape[0]-1):
-                                f.write(f"{res[node].op.value[i]}")
-                            else:
-                                f.write(f"{res[node].op.value[i]},")
-                        f.write(f"),.Dim=c({res[node].shape[0]}))\n")
-                    elif(res[node].ndim == 2):
-                        for i in range(res[node].shape[0]):
-                            for j in range(res[node].shape[1]):
-                                if(j == res[node].shape[1]-1 and i == res[node].shape[0]-1):
-                                    f.write(f"{res[node].op.value[i][j]}")
-                                else:
-                                    f.write(f"{res[node].op.value[i][j]},")
-                        f.write(f"),.Dim=c({res[node].shape[0]},{res[node].shape[1]}))\n")
+                    arr = np.array(res[node].op.value)
+                    flat = arr.reshape(-1)
+                    for i in range(len(flat)):
+                        if(i == len(flat)-1):
+                            f.write(f"{flat[i]}")
+                        else:
+                            f.write(f"{flat[i]},")
+                    f.write(f"),.Dim=c(")
+                    for i in range(res[node].ndim):
+                        if(i == res[node].ndim-1):
+                            f.write(f"{res[node].shape[i]}))\n")
+                        else:
+                            f.write(f"{res[node].shape[i]},")
             for var in kwargs:
                 f.write(f"{("v"+str(var._n))} <- {kwargs[var]}\n")
-
             f.close()
         
         with open( "model.bug", "w") as f:
@@ -66,6 +65,10 @@ class Sample_prob:
                 check[node] = True
                 if(flow.__dict__.get(res[node].op.name) is not None):
                     code = flow.__dict__[res[node].op.name](node, res)
+                    f.write(code + "\n")
+                elif(index.__dict__.get(res[node].op.name) is not None):
+                    tmp = index()
+                    code = tmp.SimpleIndex(node, res)
                     f.write(code + "\n")
                 elif(res[node].op.name!="Constant" and Scalar_ops.__dict__.get(res[node].op.name) is not None):
                     code = Scalar_ops.__dict__[res[node].op.name](node, res)
