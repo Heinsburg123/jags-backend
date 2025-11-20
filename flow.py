@@ -92,12 +92,21 @@ class flow:
                     args.append(new_list[par_nums[i][j]-num])
             new_res = {}
             v = RV(*args)
-            new_res[f"{n}[{i+1}]"] = v
-            code = Scalar_ops.__dict__[ops[i].name](f"{n}[{i+1}]", new_res)
-            for j in range(len(v.parents)):
-                if(par_nums[i][j] >= num):
-                    code = code.replace(f"v{v.parents[j]._n}", f"{n}[{par_nums[i][j]-num+1}]")
-            new_list.append(v)
-            ans+=code + "\n"
+            if(i<len(par_nums)-1):
+                new_res[f"{n}_{i+1}"] = v
+                code = Scalar_ops.__dict__[ops[i].name](f"{n}_{i+1}", new_res)
+                for j in range(len(v.parents)):
+                    if(par_nums[i][j] >= num):
+                        code = code.replace(f"v{v.parents[j]._n}", f"{n}_{par_nums[i][j]-num+1}")
+                new_list.append(v)
+                ans+=code + "\n"
+            else:
+                new_res[n] = v
+                code = Scalar_ops.__dict__[ops[i].name](n, new_res)
+                for j in range(len(v.parents)):
+                    if(par_nums[i][j] >= num):
+                        code = code.replace(f"v{v.parents[j]._n}", f"{n}_{par_nums[i][j]-num+1}")
+                ans+=code + "\n"
+        
         return ans
                 
