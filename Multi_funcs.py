@@ -3,13 +3,10 @@ from pangolin.ir import *
 from  scalar_ops import Scalar_ops
 
 class Multi_funcs:
-    def MatMul(n, res:dict):
+    def Matmul(n, res:dict):
         parent1 = res[n].parents[0]
         parent2 = res[n].parents[1]
-        k = parent1.shape[0]
-        m = parent1.shape[1]
-        p = parent2.shape[1]
-        return f"for (i in 1:{k})" + "{\n" + f"for (j in 1:{p})" + "{\n" + f"{n}[i,j]<-inprod(v{parent1._n}[i, 1:{m}], v{parent2._n}[1:{m}, j])\n"+"}\n"+"}\n"
+        return f"{n} <- v{parent1._n} %*% v{parent2._n}"
 
     def Sum(n, res:dict, tmp_res):
         def cover(arr, name):
@@ -60,7 +57,7 @@ class Multi_funcs:
         parent1 = res[n].parents[0]
         k = parent1.shape[0]
         code += f"for (i in 1:{k})" + "{\n"
-        code += f"  v{parent1._n}[i] <- exp(v{parent1._n}[i])/sum(exp(v{parent1._n}[]))\n" + "}\n"
+        code += f"  {n}[i] <- exp(v{parent1._n}[i])/sum(exp(v{parent1._n}[])[])\n" + "}\n"
         return code
     
     def MultiNormal(n, res:dict):

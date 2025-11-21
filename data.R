@@ -1,1 +1,1 @@
-v1<-structure(c(1,2,3,4,5,6),.Dim=c(2,3))
+v1<-structure(c(2,1,3,2),.Dim=c(2,2))
