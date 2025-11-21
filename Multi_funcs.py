@@ -1,3 +1,7 @@
+import numpy as np
+from pangolin.ir import *
+from  scalar_ops import Scalar_ops
+
 class Multi_funcs:
     def MatMul(n, res:dict):
         parent1 = res[n].parents[0]
@@ -7,9 +11,39 @@ class Multi_funcs:
         p = parent2.shape[1]
         return f"for (i in 1:{k})" + "{\n" + f"for (j in 1:{p})" + "{\n" + f"{n}[i,j]<-inprod(v{parent1._n}[i, 1:{m}], v{parent2._n}[1:{m}, j])\n"+"}\n"+"}\n"
 
+    def Sum(n, res:dict):
+        def cover(arr, name):
+            code = ""
+            def loop(arr, indices, name):
+                nonlocal code
+                if len(indices) == arr.ndim:
+                    code += name + "["
+                    for i in range(len(indices)):
+                        code += f"{indices[i]+1},"
+                    code = code[:-1] + "]"
+                    code += f"<- {arr[tuple(indices)]}\n"
+                else:
+                    for i in range(arr.shape[len(indices)]):
+                        loop(arr, indices + [i], name)
+            loop(arr, [], name)
+            return code
+
+        parent = res[n].parents[0].op.value
+        axis = res[n].op.axis
+        arr = np.array(parent)
+        ans = np.sum(arr, axis)
+        code = cover(ans, n)
+        return code
+
     def Inv(n, res:dict):
-        parent1 = res[n].parents[0]
-        return f"{n} <- solve(v{parent1._n})"
+        parent = res[n].parents[0].op.value
+        arr = np.array(parent)
+        ans = np.linalg.inv(arr)
+        code = ""
+        for i in range(ans.shape[0]):
+            for j in range(ans.shape[1]):
+                code += f"{n}[{i+1},{j+1}] <- {ans[i][j]}\n"
+        return code
     
     def Softmax(n, res:dict):
         parent1 = res[n].parents[0]

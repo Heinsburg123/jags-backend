@@ -35,23 +35,8 @@ class Sample_prob:
 
         with open( "data.R", "w") as f:
             for node in res:
-                if type(res[node].op) == Constant and res[node].ndim == 0:
-                    f.write(f"{node} <- {res[node].op.value}\n")
-                elif(type(res[node].op) == Constant and res[node].ndim > 0):
-                    f.write(f"{node}<-structure(c(")
-                    arr = np.array(res[node].op.value)
-                    flat = arr.reshape(-1)
-                    for i in range(len(flat)):
-                        if(i == len(flat)-1):
-                            f.write(f"{flat[i]}")
-                        else:
-                            f.write(f"{flat[i]},")
-                    f.write(f"),.Dim=c(")
-                    for i in range(res[node].ndim):
-                        if(i == res[node].ndim-1):
-                            f.write(f"{res[node].shape[i]}))\n")
-                        else:
-                            f.write(f"{res[node].shape[i]},")
+                if(res[node].op.name == "Constant"):
+                    f.write(Scalar_ops.__dict__["Constant"](node, res))
             for var in kwargs:
                 f.write(f"{("v"+str(var._n))} <- {kwargs[var]}\n")
             f.close()

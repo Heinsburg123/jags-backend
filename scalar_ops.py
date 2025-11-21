@@ -1,6 +1,26 @@
+import numpy as np 
+
 class Scalar_ops:
     def Constant(n:str, res:dict):
-        return f"{n}<-{res[n]}"
+        code = ""
+        if res[n].ndim == 0:
+            code += f"{n} <- {res[n].op.value}\n"
+        else:
+            code += f"{n}<-structure(c("
+            arr = np.array(res[n].op.value)
+            flat = arr.reshape(-1)
+            for i in range(len(flat)):
+                if(i == len(flat)-1):
+                    code += f"{flat[i]}"
+                else:
+                    code += f"{flat[i]},"
+            code += f"),.Dim=c("
+            for i in range(res[n].ndim):
+                if(i == res[n].ndim-1):
+                    code += f"{res[n].shape[i]}))\n"
+                else:
+                    code += f"{res[n].shape[i]},"
+        return code
 
     def Add(n:str, res:dict):
         parent1 = res[n].parents[0];
