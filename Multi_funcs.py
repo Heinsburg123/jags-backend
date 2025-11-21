@@ -11,7 +11,7 @@ class Multi_funcs:
         p = parent2.shape[1]
         return f"for (i in 1:{k})" + "{\n" + f"for (j in 1:{p})" + "{\n" + f"{n}[i,j]<-inprod(v{parent1._n}[i, 1:{m}], v{parent2._n}[1:{m}, j])\n"+"}\n"+"}\n"
 
-    def Sum(n, res:dict):
+    def Sum(n, res:dict, tmp_res):
         def cover(arr, name):
             code = ""
             def loop(arr, indices, name):
@@ -27,27 +27,41 @@ class Multi_funcs:
                         loop(arr, indices + [i], name)
             loop(arr, [], name)
             return code
-
-        parent = res[n].parents[0].op.value
+        name = res[n].parents[0].op.name
+        if(name == "VMap" or name == "Multinomial" or name == "Dirichlet" or name == "MultiNormal" or (name == "Sum" and res[n].parents[0].ndim==1) or (name == "Inv" and res[n].parents[0].ndim==1)):
+            return f"{n} <- sum(v{res[n].parents[0]._n}[])\n"
+        if(name == "Constant"):
+            parent = res[n].parents[0].op.value
+        elif(name == "Sum" or name == "Inv"):
+            parent = tmp_res[f"v{res[n].parents[0]._n}"]
         axis = res[n].op.axis
         arr = np.array(parent)
         ans = np.sum(arr, axis)
         code = cover(ans, n)
+        tmp_res[n] = ans.tolist()
         return code
 
-    def Inv(n, res:dict):
-        parent = res[n].parents[0].op.value
+    def Inv(n, res:dict, tmp_res):
+        name = res[n].parents[0].op.name
+        if(name == "Constant"):
+            parent = res[n].parents[0].op.value
+        elif(name == "Sum" or name == "Inv"):
+            parent = tmp_res[f"v{res[n].parents[0]._n}"]
         arr = np.array(parent)
         ans = np.linalg.inv(arr)
         code = ""
         for i in range(ans.shape[0]):
             for j in range(ans.shape[1]):
                 code += f"{n}[{i+1},{j+1}] <- {ans[i][j]}\n"
+        tmp_res[n] = ans.tolist()
         return code
     
     def Softmax(n, res:dict):
         parent1 = res[n].parents[0]
-        return f"{n} <- exp(v{parent1._n}) / sum(exp(v{parent1._n}))"
+        k = parent1.shape[0]
+        code += f"for (i in 1:{k})" + "{\n"
+        code += f"  v{parent1._n}[i] <- exp(v{parent1._n}[i])/sum(exp(v{parent1._n}[]))\n" + "}\n"
+        return code
     
     def MultiNormal(n, res:dict):
         parent1 = res[n].parents[0]

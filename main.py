@@ -2,11 +2,14 @@ import pangolin as pg
 from pangolin.ir import *
 from include import Sample_prob
 
-op = SimpleIndex()
-x = RV(Constant([[2,3,1], [4,1,5], [7,2,6]]))
-z = RV(Sum(1), x)
+a = RV(Constant(value=[[1,2,3],[4,5,6]]))
+b = RV(Sum(1), a)
+c = RV(Sum(0), b)
+
+
+
 sp = Sample_prob()
-print(sp.sample([z], {}))
+print(sp.sample([c], {}))
 
 
 

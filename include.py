@@ -7,6 +7,7 @@ from index import index
 import numpy as np
 import platform
 class Sample_prob:
+    calculate_value = {}    
     class RunDFS:
         def __init__(self):
             self.visited = {}
@@ -43,8 +44,8 @@ class Sample_prob:
         
         with open( "model.bug", "w") as f:
             f.write("model {\n")
-            check = {}      
-            for node in res: 
+            check = {}  
+            for node in sorted(res): 
                 if node in check:
                     continue
                 check[node] = True
@@ -59,7 +60,10 @@ class Sample_prob:
                     code = Scalar_ops.__dict__[res[node].op.name](node, res)
                     f.write(code + "\n")
                 elif(Multi_funcs.__dict__.get(res[node].op.name) is not None):
-                    code = Multi_funcs.__dict__[res[node].op.name](node, res)
+                    if(res[node].op.name == "Sum" or res[node].op.name == "Inv"):
+                        code = Multi_funcs.__dict__[res[node].op.name](node, res, self.calculate_value)
+                    else:
+                        code = Multi_funcs.__dict__[res[node].op.name](node, res)
                     f.write(code + "\n")
             f.write("}\n")                  
             f.close()

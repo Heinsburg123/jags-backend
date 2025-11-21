@@ -94,7 +94,10 @@ class flow:
             v = RV(*args)
             if(i<len(par_nums)-1):
                 new_res[f"{n}_{i+1}"] = v
-                code = Scalar_ops.__dict__[ops[i].name](f"{n}_{i+1}", new_res)
+                if(Scalar_ops.__dict__.get(ops[i].name) is not None):
+                    code = Scalar_ops.__dict__[ops[i].name](f"{n}_{i+1}", new_res)
+                elif(Multi_funcs.__dict__.get(ops[i].name) is not None):
+                    code = Multi_funcs.__dict__[ops[i].name](f"{n}_{i+1}", new_res)
                 for j in range(len(v.parents)):
                     if(par_nums[i][j] >= num):
                         code = code.replace(f"v{v.parents[j]._n}", f"{n}_{par_nums[i][j]-num+1}")
@@ -102,7 +105,10 @@ class flow:
                 ans+=code + "\n"
             else:
                 new_res[n] = v
-                code = Scalar_ops.__dict__[ops[i].name](n, new_res)
+                if(Scalar_ops.__dict__.get(ops[i].name) is not None):
+                    code = Scalar_ops.__dict__[ops[i].name](n, new_res)
+                elif(Multi_funcs.__dict__.get(ops[i].name) is not None):
+                    code = Multi_funcs.__dict__[ops[i].name](n, new_res)
                 for j in range(len(v.parents)):
                     if(par_nums[i][j] >= num):
                         code = code.replace(f"v{v.parents[j]._n}", f"{n}_{par_nums[i][j]-num+1}")
