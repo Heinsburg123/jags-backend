@@ -46,6 +46,7 @@ class Multi_funcs:
             parent = tmp_res[f"v{res[n].parents[0]._n}"]
         arr = np.array(parent)
         ans = np.linalg.inv(arr)
+        ans = np.round(ans, decimals=6)
         code = ""
         for i in range(ans.shape[0]):
             for j in range(ans.shape[1]):
