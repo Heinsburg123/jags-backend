@@ -1,9 +1,9 @@
 import subprocess
 from pangolin.ir import *
-from  scalar_ops import Scalar_ops
-from Multi_funcs import Multi_funcs
-from flow import flow
-from index import index
+from  Backend.scalar_ops import Scalar_ops
+from Backend.Multi_funcs import Multi_funcs
+from Backend.flow import flow
+from Backend.index import index
 import numpy as np
 import platform
 class Sample_prob:
@@ -76,7 +76,7 @@ class Sample_prob:
             script += "update 1000\n"
             for sample_var in sample_vars:
                 script += f"monitor {('v'+str(sample_var._n))}\n"
-            script += "update 1000\n"
+            script += "update 5000\n"
             script += "coda *\n"
             f.write(script)
 

@@ -1,5 +1,5 @@
-from scalar_ops import Scalar_ops
-from Multi_funcs import Multi_funcs
+from Backend.scalar_ops import Scalar_ops
+from Backend.Multi_funcs import Multi_funcs
 from pangolin.ir import RV
 class flow:
     def VMap(n, res:dict):

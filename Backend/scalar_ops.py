@@ -63,7 +63,7 @@ class Scalar_ops:
         parent2 = res[n].parents[1];
         return f"{n} ~ dnorm(v{parent1._n}, v{parent2._n})"
     
-    def LogNormal(n:str, res:dict):
+    def Lognormal(n:str, res:dict):
         parent1 = res[n].parents[0];
         parent2 = res[n].parents[1];
         return f"{n} ~ dlnorm(v{parent1._n}, 1/(v{parent2._n}*v{parent2._n}))"
@@ -108,7 +108,7 @@ class Scalar_ops:
     def Gamma(n:str, res:dict):
         parent1 = res[n].parents[0];
         parent2 = res[n].parents[1];
-        return f"{n} ~ dgamma(v{parent1._n}, 1/v{parent2._n})"
+        return f"{n} ~ dgamma(v{parent1._n}, v{parent2._n})"
     
     def Poisson(n:str, res:dict):
         parent1 = res[n].parents[0];
@@ -179,6 +179,10 @@ class Scalar_ops:
     def Log(n:str, res:dict):
         parent1 = res[n].parents[0];
         return f"{n} <- log(v{parent1._n})"
+    
+    def Loggamma(n:str, res:dict):
+        parent1 = res[n].parents[0]
+        return f"{n} <- loggam(v{parent1._n})"
     
     def InvLogit(n:str, res:dict):
         parent1 = res[n].parents[0];

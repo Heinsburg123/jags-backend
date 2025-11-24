@@ -1,6 +1,6 @@
 import numpy as np
 from pangolin.ir import *
-from  scalar_ops import Scalar_ops
+from  Backend.scalar_ops import Scalar_ops
 
 class Multi_funcs:
     def Matmul(n, res:dict):
