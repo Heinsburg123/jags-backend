@@ -60,7 +60,7 @@ class Sample_prob:
                     code = Scalar_ops.__dict__[res[node].op.name](node, res)
                     f.write(code + "\n")
                 elif(Multi_funcs.__dict__.get(res[node].op.name) is not None):
-                    if(res[node].op.name == "Sum" or res[node].op.name == "Inv"):
+                    if(res[node].op.name == "Sum" or res[node].op.name == "Inv" or res[node].op.name == "Matmul"):
                         code = Multi_funcs.__dict__[res[node].op.name](node, res, self.calculate_value)
                     else:
                         code = Multi_funcs.__dict__[res[node].op.name](node, res)

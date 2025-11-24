@@ -3,9 +3,25 @@ from pangolin.ir import *
 from  Backend.scalar_ops import Scalar_ops
 
 class Multi_funcs:
-    def Matmul(n, res:dict):
+    def Matmul(n, res:dict, tmp_res):
         parent1 = res[n].parents[0]
         parent2 = res[n].parents[1]
+        if(parent1.ndim == 2 and parent2.ndim == 2):
+            code = ""
+            if(f"v{res[n].parents[0]._n}" in tmp_res):
+                A = tmp_res[f"v{res[n].parents[0]._n}"]
+            else:
+                A = parent1.op.value
+            if(f"v{res[n].parents[1]._n}" in tmp_res):
+                B = tmp_res[f"v{res[n].parents[1]._n}"]
+            else:
+                B = parent2.op.value
+            C = A @ B
+            for i in range(len(C)):
+                for j in range(len(C[i])):
+                    code += f"{n}[{i+1},{j+1}] <- {C[i][j]}\n"
+            tmp_res[n] = C
+            return code
         return f"{n} <- v{parent1._n} %*% v{parent2._n}"
 
     def Sum(n, res:dict, tmp_res):
@@ -24,13 +40,12 @@ class Multi_funcs:
                         loop(arr, indices + [i], name)
             loop(arr, [], name)
             return code
-        name = res[n].parents[0].op.name
-        if(name == "VMap" or name == "Multinomial" or name == "Dirichlet" or name == "MultiNormal" or (name == "Sum" and res[n].parents[0].ndim==1) or (name == "Inv" and res[n].parents[0].ndim==1)):
+        if(res[n].parents[0].ndim == 1):
             return f"{n} <- sum(v{res[n].parents[0]._n}[])\n"
-        if(name == "Constant"):
-            parent = res[n].parents[0].op.value
-        elif(name == "Sum" or name == "Inv"):
+        if( f"v{res[n].parents[0]._n}" in tmp_res):
             parent = tmp_res[f"v{res[n].parents[0]._n}"]
+        else:
+            parent = res[n].parents[0].op.value
         axis = res[n].op.axis
         arr = np.array(parent)
         ans = np.sum(arr, axis)
@@ -40,10 +55,10 @@ class Multi_funcs:
 
     def Inv(n, res:dict, tmp_res):
         name = res[n].parents[0].op.name
-        if(name == "Constant"):
-            parent = res[n].parents[0].op.value
-        elif(name == "Sum" or name == "Inv"):
+        if( f"v{res[n].parents[0]._n}" in tmp_res):
             parent = tmp_res[f"v{res[n].parents[0]._n}"]
+        else:
+            parent = res[n].parents[0].op.value
         arr = np.array(parent)
         ans = np.linalg.inv(arr)
         ans = np.round(ans, decimals=6)
