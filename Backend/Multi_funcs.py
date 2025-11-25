@@ -72,21 +72,25 @@ class Multi_funcs:
     def Softmax(n, res:dict):
         parent1 = res[n].parents[0]
         k = parent1.shape[0]
+        code = ""
+        code += f"for (i in 1:{k})"+"{\n"
+        code += f"  {n}_1[i] <-exp(v{parent1._n}[i])\n"+"}\n"
+        code += f"{n}_2 <- sum({n}_1[])\n"
         code += f"for (i in 1:{k})" + "{\n"
-        code += f"  {n}[i] <- exp(v{parent1._n}[i])/sum(exp(v{parent1._n}[])[])\n" + "}\n"
+        code += f"  {n}[i] <- {n}_1[i]/{n}_2\n" + "}\n"
         return code
     
     def MultiNormal(n, res:dict):
         parent1 = res[n].parents[0]
         parent2 = res[n].parents[1]
         p = res[n].shape[0]
-        return f"{n}[1:{p}] ~ dmnorm(v{parent1._n}[1:{p}], v{parent2._n}[1:{p},1:{p}])"
+        return f"{n}[1:{p}] ~ dmnorm(v{parent1._n}[1:{p}], inverse(v{parent2._n}[1:{p},1:{p}]))"
     
-    def MultiNominal(n, res:dict):
+    def Multinomial(n, res:dict):
         parent1 = res[n].parents[0]
-        n = res[n].shape[0]
-        p = res[n].shape[1]
-        return f"{n}[1:{p}] ~ dmulti(v{parent1._n}[1:{p}], {n})"
+        parent2 = res[n].parents[1]
+        p = parent2.shape[0]
+        return f"{n}[1:{p}] ~ dmulti(v{parent2._n}[1:{p}], v{parent1._n})"
 
     def Dirichlet(n, res:dict):
         parent1 = res[n].parents[0]

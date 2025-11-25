@@ -76,7 +76,7 @@ class Sample_prob:
             script += "update 1000\n"
             for sample_var in sample_vars:
                 script += f"monitor {('v'+str(sample_var._n))}\n"
-            script += "update 5000\n"
+            script += "update 2000\n"
             script += "coda *\n"
             f.write(script)
 
@@ -102,7 +102,16 @@ class Sample_prob:
             lines = f.readlines()
             for line in lines:
                 v, start, end  = line.strip().split()
-                result[v] = res_lines[int(start)-1:int(end)];
+                index = v.find('[')
+                if(index == -1):
+                    result[v] = res_lines[int(start)-1:int(end)]
+                else:
+                    name = v[:index]
+                    if(name not in result):
+                        result[name] = []
+                    result[name].append(res_lines[int(start)-1:int(end)])
+
+                
         return result;
 
 

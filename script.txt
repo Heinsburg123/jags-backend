@@ -3,6 +3,11 @@ data in "data.R"
 compile, nchains(1)
 initialize
 update 1000
-monitor v7
-update 5000
+monitor v6
+monitor v9
+monitor v10
+monitor v11
+monitor v13
+monitor v16
+update 2000
 coda *
