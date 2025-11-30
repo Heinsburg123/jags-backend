@@ -15,13 +15,8 @@ class index:
                 x = array[len(cur)][i]
                 self.loop(name, cur+[x], array, arr_name, index + [i])
     
-    def SimpleIndex(self, n, res:dict):
-        parent = res[n].parents[0]
-        indexes = []
-        for i in range(1, len(res[n].parents)):
-            indexes.append(res[n].parents[i].op.value)
-        array = parent.op.value 
-        self.loop(n, [], indexes, f"v{parent._n}", [])
+    def SimpleIndex(self, n, parents, res):
+        self.loop(n, [], res[0].shape, parents, [])
         ans = self.code
         self.code = ""
         return ans

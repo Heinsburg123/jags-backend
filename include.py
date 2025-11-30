@@ -4,8 +4,18 @@ from  Backend.scalar_ops import Scalar_ops
 from Backend.Multi_funcs import Multi_funcs
 from Backend.flow import flow
 from Backend.index import index
-import numpy as np
 import platform
+import re
+
+def ensure_size( arr, sizes, depth=0):
+    while len(arr) < sizes[depth]:
+        if depth == len(sizes) - 1:
+            arr.append(None)    # leaf
+        else:
+            arr.append([])
+    return arr
+
+
 class Sample_prob:
     calculate_value = {}    
     class RunDFS:
@@ -37,7 +47,7 @@ class Sample_prob:
         with open( "data.R", "w") as f:
             for node in res:
                 if(res[node].op.name == "Constant"):
-                    f.write(Scalar_ops.__dict__["Constant"](node, res))
+                    f.write(Scalar_ops.__dict__["Constant_before"](node, res))
             for var in kwargs:
                 f.write(f"{("v"+str(var._n))} <- {kwargs[var]}\n")
             f.close()
@@ -49,15 +59,17 @@ class Sample_prob:
                 if node in check:
                     continue
                 check[node] = True
+                parents = [f"v{res[node].parents[i]._n}" for i in range(len(res[node].parents))]
                 if(flow.__dict__.get(res[node].op.name) is not None):
-                    code = flow.__dict__[res[node].op.name](node, res)
+                    tmp = [res[node].parents[i] for i in range(len(res[node].parents))]
+                    code = flow.__dict__[res[node].op.name](node, res[node].op, parents,0, tmp)
                     f.write(code + "\n")
                 elif(index.__dict__.get(res[node].op.name) is not None):
                     tmp = index()
                     code = tmp.SimpleIndex(node, res)
                     f.write(code + "\n")
                 elif(res[node].op.name!="Constant" and Scalar_ops.__dict__.get(res[node].op.name) is not None):
-                    code = Scalar_ops.__dict__[res[node].op.name](node, res)
+                    code = Scalar_ops.__dict__[res[node].op.name](node, parents)
                     f.write(code + "\n")
                 elif(Multi_funcs.__dict__.get(res[node].op.name) is not None):
                     if(res[node].op.name == "Sum" or res[node].op.name == "Inv" or res[node].op.name == "Matmul"):
@@ -90,28 +102,57 @@ class Sample_prob:
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode()
         
         return(output)
-    
-    def read_coda(self):
-        result = {};
-        res_lines = [];
-        with open("CODAchain1.txt", "r") as f:
-            res_lines = [line.strip().split() for line in f.readlines()]
-        for i in range(len(res_lines)):
-            res_lines[i] = float(res_lines[i][1])
-        with open("CODAindex.txt", "r") as f:
-            lines = f.readlines()
-            for line in lines:
-                v, start, end  = line.strip().split()
-                index = v.find('[')
-                if(index == -1):
-                    result[v] = res_lines[int(start)-1:int(end)]
-                else:
-                    name = v[:index]
-                    if(name not in result):
-                        result[name] = []
-                    result[name].append(res_lines[int(start)-1:int(end)])
 
-                
-        return result;
+
+    def read_coda(self):
+        result = {}
+
+        # Load MCMC samples
+        with open("CODAchain1.txt", "r") as f:
+            res_lines = [float(line.strip().split()[1]) for line in f]
+
+        # Regex for v123[1,2,3] or v5 or v12[4]
+        pattern = re.compile(r'(v\d+)(?:\[(.*?)\])?')
+
+        with open("CODAindex.txt", "r") as f:
+            for line in f:
+                v, start, end = line.strip().split()
+
+                match = pattern.fullmatch(v)
+                name = match.group(1)
+                index_str = match.group(2)
+
+                # Slice values
+                values = res_lines[int(start)-1 : int(end)]
+
+                # Case 1: scalar (no indices)
+                if index_str is None:
+                    result[name] = values
+                    continue
+
+                # Case 2: multi-dimensional variable
+                indices = list(map(int, index_str.split(",")))
+
+                # Create variable if first time
+                if name not in result:
+                    result[name] = []
+
+                arr = result[name]
+
+                # Ensure the list is large enough
+                arr = ensure_size(arr, indices)
+
+                # Navigate to the leaf
+                ref = arr
+                for d in range(len(indices)-1):
+                    idx = indices[d] - 1
+                    ref[idx] = ensure_size(ref[idx], indices, depth=d+1)
+                    ref = ref[idx]
+
+                # Set value at final index
+                ref[indices[-1] - 1] = values
+
+                result[name] = arr
+        return result
 
 

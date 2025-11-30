@@ -1,14 +1,14 @@
 import numpy as np 
 
 class Scalar_ops:
-    def Constant(n:str, res:dict):
+    def Constant_before(n:str, res):
         code = ""
         if res[n].ndim == 0:
             code += f"{n} <- {res[n].op.value}\n"
         else:
             code += f"{n}<-structure(c("
             arr = np.array(res[n].op.value)
-            flat = arr.reshape(-1)
+            flat = arr.flatten(order = 'F')
             for i in range(len(flat)):
                 if(i == len(flat)-1):
                     code += f"{flat[i]}"
@@ -21,179 +21,150 @@ class Scalar_ops:
                 else:
                     code += f"{res[n].shape[i]},"
         return code
+    
+    def Constant_after(n:str, op):
+        lines = []
+        def recurse(indices, subarr):
+            # Check if the current subarr is a scalar
+            if np.isscalar(subarr) or subarr.ndim == 0:
+                # Only add indices if name does not already have brackets
+                if n.endswith("]"):
+                    full_name = n
+                else:
+                    idx_str = ",".join(str(i+1) for i in indices)
+                    full_name = f"{n}[{idx_str}]" if indices else n
+                lines.append(f"{full_name} <- {subarr}")
+            else:
+                for i in range(subarr.shape[0]):
+                    recurse(indices + [i], subarr[i])
 
-    def Add(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        parent2 = res[n].parents[1];
-        return f"{n} <- v{parent1._n} + v{parent2._n}"
+        recurse([], np.array(op.value))
+        print("\n".join(lines))
+        return "\n".join(lines)
 
-    def Sub(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        parent2 = res[n].parents[1];
-        return f"{n} <- v{parent1._n} - v{parent2._n}"
-    
-    def Mul(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        parent2 = res[n].parents[1];
-        return f"{n} <- v{parent1._n} * v{parent2._n}"
-    
-    def Div(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        parent2 = res[n].parents[1];
-        return f"{n} <- v{parent1._n} / v{parent2._n}"
-    
-    def Pow(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        parent2 = res[n].parents[1];
-        return f"{n} <- v{parent1._n} ^ v{parent2._n}"
-    
+    def Add(n: str, parents):
+        return f"{n} <- {parents[0]} + {parents[1]}"
 
-    def Normal(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        parent2 = res[n].parents[1];
-        return f"{n} ~ dnorm(v{parent1._n}, 1/(v{parent2._n}*v{parent2._n}))"
+    def Sub(n: str, parents):
+        return f"{n} <- {parents[0]} - {parents[1]}"
 
-    def Cauchy(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        parent2 = res[n].parents[1];
-        return f"{n} ~ dt(v{parent1._n}, 1/(v{parent2._n}*v{parent2._n}), 1)"
-    
-    def NormalPrec(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        parent2 = res[n].parents[1];
-        return f"{n} ~ dnorm(v{parent1._n}, v{parent2._n})"
-    
-    def Lognormal(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        parent2 = res[n].parents[1];
-        return f"{n} ~ dlnorm(v{parent1._n}, 1/(v{parent2._n}*v{parent2._n}))"
-    
-    def Bernoulli(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        return f"{n} ~ dbern(v{parent1._n})"
-    
-    def BetaBinomial(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        parent2 = res[n].parents[1];
-        parent3 = res[n].parents[2];
-        return f"{n} ~ dbin({n}_5, v{parent1._n})\n{n}_5 ~ dbeta(v{parent2._n}, v{parent3._n})"
-    
-    def BernoulliLogit(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        return f"{n} ~ dbern({n}_5)\nlogit({n}_5) <- v{parent1._n}"
-    
-    def Binomial(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        parent2 = res[n].parents[1];
-        return f"{n} ~ dbin(v{parent1._n}, v{parent2._n})"
-    
-    def Uniform(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        parent2 = res[n].parents[1];
-        return f"{n} ~ dunif(v{parent1._n}, v{parent2._n})"
-    
-    def Categorical(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        return f"{n} ~ dcat(v{parent1._n})"
+    def Mul(n: str, parents):
+        return f"{n} <- {parents[0]} * {parents[1]}"
 
-    def Beta(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        parent2 = res[n].parents[1];
-        return f"{n} ~ dbeta(v{parent1._n}, v{parent2._n})"
+    def Div(n: str, parents):
+        return f"{n} <- {parents[0]} / {parents[1]}"
 
-    def Exponential(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        return f"{n} ~ dexp(v{parent1._n})"
-    
-    def Gamma(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        parent2 = res[n].parents[1];
-        return f"{n} ~ dgamma(v{parent1._n}, v{parent2._n})"
-    
-    def Poisson(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        return f"{n} ~ dpois(v{parent1._n})"
-    
-    def StudentT(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        parent2 = res[n].parents[1];
-        parent3 = res[n].parents[2];
-        return f"{n} ~ dt(v{parent1._n}, 1/(v{parent2._n}*v{parent2._n}), v{parent3._n})"
-    
-    def Abs(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        return f"{n} <- abs(v{parent1._n})"
-    
-    def Arccos(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        return f"{n} <- acos(v{parent1._n})"
-    
-    def Arcsin(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        return f"{n} <- asin(v{parent1._n})"
-    
-    def Arccosh(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        return f"{n} <- acosh(v{parent1._n})"
-    
-    def Arcsinh(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        return f"{n} <- asinh(v{parent1._n})"
-    
-    def Arctan(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        return f"{n} <- atan(v{parent1._n})"
-    
-    def Arctanh(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        return f"{n} <- atanh(v{parent1._n})"
-    
-    def Cos(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        return f"{n} <- cos(v{parent1._n})"
-    
-    def Sin(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        return f"{n} <- sin(v{parent1._n})"
-    
-    def Tan(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        return f"{n} <- tan(v{parent1._n})"
-    
-    def Cosh(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        return f"{n} <- cosh(v{parent1._n})"
-    
-    def Sinh(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        return f"{n} <- sinh(v{parent1._n})"
-    
-    def Tanh(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        return f"{n} <- tanh(v{parent1._n})"
+    def Pow(n: str, parents):
+        return f"{n} <- {parents[0]} ^ {parents[1]}"
 
-    def Exp(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        return f"{n} <- exp(v{parent1._n})"
-    
-    def Log(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        return f"{n} <- log(v{parent1._n})"
-    
-    def Loggamma(n:str, res:dict):
-        parent1 = res[n].parents[0]
-        return f"{n} <- loggam(v{parent1._n})"
-    
-    def InvLogit(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        return f"{n} <- exp(v{parent1._n})/(1 + exp(v{parent1._n}))"
-    
-    def Logit(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        return f"{n} <- log(v{parent1._n}/(1 - v{parent1._n}))"
-    
-    def Step(n:str, res:dict):
-        parent1 = res[n].parents[0];
-        return f"{n} <- step(v{parent1._n})"
-    
-    
+    def Normal(n: str, parents):
+        return f"{n} ~ dnorm({parents[0]}, 1/({parents[1]}*{parents[1]}))"
+
+    def Cauchy(n: str, parents):
+        return f"{n} ~ dt({parents[0]}, 1/({parents[1]}*{parents[1]}), 1)"
+
+    def NormalPrec(n: str, parents):
+        return f"{n} ~ dnorm({parents[0]}, {parents[1]})"
+
+    def Lognormal(n: str, parents):
+        return f"{n} ~ dlnorm({parents[0]}, 1/({parents[1]}*{parents[1]}))"
+
+    def Bernoulli(n: str, parents):
+        return f"{n} ~ dbern({parents[0]})"
+
+    def BetaBinomial(n: str, parents):
+        return (
+            f"{n} ~ dbin({n}_5, {parents[0]})\n"
+            f"{n}_5 ~ dbeta({parents[1]}, {parents[2]})"
+        )
+
+    def BernoulliLogit(n: str, parents):
+        return (
+            f"{n} ~ dbern({n}_5)\n"
+            f"logit({n}_5) <- {parents[0]}"
+        )
+
+    def Binomial(n: str, parents):
+        return f"{n} ~ dbin({parents[0]}, {parents[1]})"
+
+    def Uniform(n: str, parents):
+        return f"{n} ~ dunif({parents[0]}, {parents[1]})"
+
+    def Categorical(n: str, parents):
+        return f"{n} ~ dcat({parents[0]})"
+
+    def Beta(n: str, parents):
+        return f"{n} ~ dbeta({parents[0]}, {parents[1]})"
+
+    def Exponential(n: str, parents):
+        return f"{n} ~ dexp({parents[0]})"
+
+    def Gamma(n: str, parents):
+        return f"{n} ~ dgamma({parents[0]}, {parents[1]})"
+
+    def Poisson(n: str, parents):
+        return f"{n} ~ dpois({parents[0]})"
+
+    def StudentT(n: str, parents):
+        return (
+            f"{n} ~ dt({parents[0]}, 1/({parents[1]}*{parents[1]}), {parents[2]})"
+        )
+
+    def Abs(n: str, parents):
+        return f"{n} <- abs({parents[0]})"
+
+    def Arccos(n: str, parents):
+        return f"{n} <- acos({parents[0]})"
+
+    def Arcsin(n: str, parents):
+        return f"{n} <- asin({parents[0]})"
+
+    def Arccosh(n: str, parents):
+        return f"{n} <- acosh({parents[0]})"
+
+    def Arcsinh(n: str, parents):
+        return f"{n} <- asinh({parents[0]})"
+
+    def Arctan(n: str, parents):
+        return f"{n} <- atan({parents[0]})"
+
+    def Arctanh(n: str, parents):
+        return f"{n} <- atanh({parents[0]})"
+
+    def Cos(n: str, parents):
+        return f"{n} <- cos({parents[0]})"
+
+    def Sin(n: str, parents):
+        return f"{n} <- sin({parents[0]})"
+
+    def Tan(n: str, parents):
+        return f"{n} <- tan({parents[0]})"
+
+    def Cosh(n: str, parents):
+        return f"{n} <- cosh({parents[0]})"
+
+    def Sinh(n: str, parents):
+        return f"{n} <- sinh({parents[0]})"
+
+    def Tanh(n: str, parents):
+        return f"{n} <- tanh({parents[0]})"
+
+    def Exp(n: str, parents):
+        return f"{n} <- exp({parents[0]})"
+
+    def Log(n: str, parents):
+        return f"{n} <- log({parents[0]})"
+
+    def Loggamma(n: str, parents):
+        return f"{n} <- loggam({parents[0]})"
+
+    def InvLogit(n: str, parents):
+        return f"{n} <- exp({parents[0]})/(1 + exp({parents[0]}))"
+
+    def Logit(n: str, parents):
+        return f"{n} <- log({parents[0]}/(1 - {parents[0]}))"
+
+    def Step(n: str, parents):
+        return f"{n} <- step({parents[0]})"
+        
+        
