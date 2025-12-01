@@ -1,5 +1,5 @@
 model {
-v43_1 <- v41 + v42
-v43 ~ dnorm(v43_1, 1/(v42*v42))
-
+v3 ~ dcat(v2)
+v5 ~ dcat(v4)
+v6<-v1[v3,v5]
 }

@@ -1,8 +1,6 @@
 import numpy as np
 from pangolin.ir import *
 from include import Sample_prob  
-import jax
-import numpyro.distributions
 
 def test_vmap_handle_nonrandom_exp():
     x = RV(Constant(1.0))
