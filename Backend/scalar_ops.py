@@ -73,15 +73,25 @@ class Scalar_ops:
         return f"{n} ~ dbern({parents[0]})"
 
     def BetaBinomial(n: str, parents):
+        idd = n.find('[')
+        if(idd == -1):
+            tmp = f"{n}_5"
+        else:
+            tmp = n[:idd]+"_5"+n[idd:]
         return (
-            f"{n} ~ dbin({n}_5, {parents[0]})\n"
-            f"{n}_5 ~ dbeta({parents[1]}, {parents[2]})"
+            f"{n} ~ dbin({tmp}, {parents[0]})\n"
+            f"{tmp} ~ dbeta({parents[1]}, {parents[2]})"
         )
 
     def BernoulliLogit(n: str, parents):
+        idd = n.find('[')
+        if(idd == -1):
+            tmp = f"{n}_5"
+        else:
+            tmp = n[:idd]+"_5"+n[idd:]
         return (
-            f"{n} ~ dbern({n}_5)\n"
-            f"logit({n}_5) <- {parents[0]}"
+            f"{n} ~ dbern({tmp})\n"
+            f"logit({tmp}) <- {parents[0]}"
         )
 
     def Binomial(n: str, parents):
