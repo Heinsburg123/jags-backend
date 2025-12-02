@@ -45,6 +45,8 @@ class flow:
             code += Scalar_ops.__dict__["Constant_after"](name, op)
         elif (flow.__dict__.get(op.name) is not None):
             code += flow.__dict__[op.name](name, op, pars, ite+1, res)
+        elif(Multi_funcs.__dict__.get(op.name) is not None):
+            ans += Multi_funcs.__dict__[op.name](name, op, pars, res)
         else:
             code += Scalar_ops.__dict__[op.name](name, pars)
         code += "\n"
@@ -99,6 +101,8 @@ class flow:
             ans += Scalar_ops.__dict__["Constant_after"](name, op)
         elif (flow.__dict__.get(op.name) is not None):
             ans += flow.__dict__[op.name](name, op, pars, ite, res)
+        elif(Multi_funcs.__dict__.get(op.name) is not None):
+            ans += Multi_funcs.__dict__[op.name](name, op, pars, res)
         else:
             ans += Scalar_ops.__dict__[op.name](name, pars)
         ans += "\n"
@@ -131,6 +135,8 @@ class flow:
             code += Scalar_ops.__dict__["Constant_after"](name, op)
         elif (flow.__dict__.get(op.name) is not None):
             code += flow.__dict__[op.name](name, op, pars, ite, res)
+        elif(Multi_funcs.__dict__.get(op.name) is not None):
+            ans += Multi_funcs.__dict__[op.name](name, op, pars, res)
         else:
             code += Scalar_ops.__dict__[op.name](name, pars)
         code += "\n"
@@ -166,8 +172,10 @@ class flow:
                     code = Scalar_ops.__dict__["Constant_after"](name, ops[i]) 
                 elif(Scalar_ops.__dict__.get(ops[i].name) is not None):
                     code = Scalar_ops.__dict__[ops[i].name](name, pars) 
+                elif(Multi_funcs.__dict__.get(ops[i].name) is not None):
+                    code = Multi_funcs.__dict__[ops[i].name](name, ops[i], pars, res) 
                 elif(flow.__dict__.get(ops[i].name) is not None):
-                    code = Scalar_ops.__dict__[ops[i].name](name, ops[i], pars, ite, res)
+                    code = flow.__dict__[ops[i].name](name, ops[i], pars, ite, res)
                 new_list.append(name)
                 ans+=code + "\n"
             else:
@@ -176,8 +184,10 @@ class flow:
                     code = Scalar_ops.__dict__["Constant_after"](name, ops[i]) 
                 elif(Scalar_ops.__dict__.get(ops[i].name) is not None):
                     code = Scalar_ops.__dict__[ops[i].name](name, pars) 
+                elif(Multi_funcs.__dict__.get(ops[i].name) is not None):
+                    code = Multi_funcs.__dict__[ops[i].name](name, ops[i], pars, res) 
                 elif(flow.__dict__.get(ops[i].name) is not None):
-                    code = Scalar_ops.__dict__[ops[i].name](name, ops[i], pars, ite, res)
+                    code = flow.__dict__[ops[i].name](name, ops[i], pars, ite, res)
                 ans+=code + "\n"
         
         return ans

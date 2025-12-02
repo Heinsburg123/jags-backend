@@ -3,99 +3,72 @@ from pangolin.ir import *
 from  Backend.scalar_ops import Scalar_ops
 
 class Multi_funcs:
-    def Matmul(n, res:dict, tmp_res):
-        parent1 = res[n].parents[0]
-        parent2 = res[n].parents[1]
-        if(parent1.ndim == 2 and parent2.ndim == 2):
-            code = ""
-            if(f"v{res[n].parents[0]._n}" in tmp_res):
-                A = tmp_res[f"v{res[n].parents[0]._n}"]
-            else:
-                A = parent1.op.value
-            if(f"v{res[n].parents[1]._n}" in tmp_res):
-                B = tmp_res[f"v{res[n].parents[1]._n}"]
-            else:
-                B = parent2.op.value
-            C = A @ B
-            for i in range(len(C)):
-                for j in range(len(C[i])):
-                    code += f"{n}[{i+1},{j+1}] <- {C[i][j]}\n"
-            tmp_res[n] = C
-            return code
-        return f"{n} <- v{parent1._n} %*% v{parent2._n}"
+    def Matmul(n, op, parents, res):
+        return f"{n} <- v{parents[0]} %*% v{parents[1]}\n"
 
-    def Sum(n, res:dict, tmp_res):
-        def cover(arr, name):
-            code = ""
-            def loop(arr, indices, name):
-                nonlocal code
-                if len(indices) == arr.ndim:
-                    code += name + "["
-                    for i in range(len(indices)):
-                        code += f"{indices[i]+1},"
-                    code = code[:-1] + "]"
-                    code += f"<- {arr[tuple(indices)]}\n"
-                else:
-                    for i in range(arr.shape[len(indices)]):
-                        loop(arr, indices + [i], name)
-            loop(arr, [], name)
-            return code
-        if(res[n].parents[0].ndim == 1):
-            return f"{n} <- sum(v{res[n].parents[0]._n}[])\n"
-        if( f"v{res[n].parents[0]._n}" in tmp_res):
-            parent = tmp_res[f"v{res[n].parents[0]._n}"]
-        else:
-            parent = res[n].parents[0].op.value
-        axis = res[n].op.axis
-        arr = np.array(parent)
-        ans = np.sum(arr, axis)
-        code = cover(ans, n)
-        tmp_res[n] = ans.tolist()
-        return code
-
-    def Inv(n, res:dict, tmp_res):
-        name = res[n].parents[0].op.name
-        if( f"v{res[n].parents[0]._n}" in tmp_res):
-            parent = tmp_res[f"v{res[n].parents[0]._n}"]
-        else:
-            parent = res[n].parents[0].op.value
-        arr = np.array(parent)
-        ans = np.linalg.inv(arr)
-        ans = np.round(ans, decimals=6)
+    def Sum(n, op, parents, res):
         code = ""
-        for i in range(ans.shape[0]):
-            for j in range(ans.shape[1]):
-                code += f"{n}[{i+1},{j+1}] <- {ans[i][j]}\n"
-        tmp_res[n] = ans.tolist()
+        offset = 0
+        for i in range(res[0].ndim):
+            if(i!=op.axis):
+                code += f"for (j{i-offset} in 1:{res[0].shape[i]})"+"{\n"
+            else:
+                offset+=1
+        code+=n
+        for i in range(res[0].ndim-1):
+            if(code[-1]==']'):
+                code = code[:-1]+f",j{i}]"
+            else:
+                code = code + f"[j{i}]"
+        code+= f"<- sum({parents[0]}"
+        offset = 0
+        for i in range(res[0].ndim):
+            if(code[-1]==']'):
+                if(i == op.axis):
+                    code = code[:-1]+",]"
+                    offset+=1
+                else:
+                    code = code[:-1]+f",j{i-offset}]"
+            else:
+                if(i == op.axis):
+                    code = code+f"[]"
+                    offset+=1
+                else:
+                    code = code+f"[j{i-offset}]"
+        if(code[-1]!=']'):
+            code+="[]"
+        code+=")\n"
+        for i in range(res[0].ndim-1):
+            code +="}"
         return code
-    
-    def Softmax(n, res:dict):
-        parent1 = res[n].parents[0]
-        k = parent1.shape[0]
+    def Softmax(n, op, parents, res):
+        k = res[0].shape[0]
+        idd = n.find('[')
+        if(idd == -1):
+            name1 = f"{n}_1"
+            name2 = f"{n}_2"
+        else:
+            name1 = n[:idd]+f"_1"+n[idd:]
+            name2 = n[:idd]+f"_2"+n[idd:]
         code = ""
         code += f"for (i in 1:{k})"+"{\n"
-        code += f"  {n}_1[i] <-exp(v{parent1._n}[i])\n"+"}\n"
-        code += f"{n}_2 <- sum({n}_1[])\n"
+        code += f"  {name1}[i] <-exp(v{parents[0]}[i])\n"+"}\n"
+        code += f"{name2} <- sum({name1}[])\n"
         code += f"for (i in 1:{k})" + "{\n"
-        code += f"  {n}[i] <- {n}_1[i]/{n}_2\n" + "}\n"
+        code += f"  {n}[i] <- {name1}[i]/{name2}\n" + "}\n"
         return code
     
-    def MultiNormal(n, res:dict):
-        parent1 = res[n].parents[0]
-        parent2 = res[n].parents[1]
-        p = res[n].shape[0]
-        return f"{n}[1:{p}] ~ dmnorm(v{parent1._n}[1:{p}], inverse(v{parent2._n}[1:{p},1:{p}]))"
+    def MultiNormal(n, op, parents, res):
+        p = res[0].shape[0]
+        return f"{n}[1:{p}] ~ dmnorm(v{parents[0]}[1:{p}], inverse(v{parents[1]}[1:{p},1:{p}]))"
     
-    def Multinomial(n, res:dict):
-        parent1 = res[n].parents[0]
-        parent2 = res[n].parents[1]
-        p = parent2.shape[0]
-        return f"{n}[1:{p}] ~ dmulti(v{parent2._n}[1:{p}], v{parent1._n})"
+    def Multinomial(n, op, parents, res):
+        p = res[1].shape[0]
+        return f"{n}[1:{p}] ~ dmulti(v{parents[1]}[1:{p}], v{parents[0]._n})"
 
-    def Dirichlet(n, res:dict):
-        parent1 = res[n].parents[0]
-        p = res[n].shape[0]
-        return f"{n}[1:{p}] ~ ddirch(v{parent1._n}[1:{p}])"
+    def Dirichlet(n, op, parents, res):
+        p = res[0].shape[0]
+        return f"{n}[1:{p}] ~ ddirch(v{parents[0]}[1:{p}])"
 
 
     

@@ -17,7 +17,6 @@ def ensure_size( arr, sizes, depth=0):
 
 
 class Sample_prob:
-    calculate_value = {}    
     class RunDFS:
         def __init__(self):
             self.visited = {}
@@ -35,7 +34,7 @@ class Sample_prob:
                 self.dfs(nodes[node])
             return self.visited 
 
-    def sample(self, sample_vars:list[RV], kwargs:dict[RV, float|int]):
+    def sample(self, sample_vars:list[RV], kwargs=[], values = []):
         dic = {}
         for var in kwargs:
             dic["v"+str(var._n)] = var
@@ -47,9 +46,9 @@ class Sample_prob:
         with open( "data.R", "w") as f:
             for node in res:
                 if(res[node].op.name == "Constant"):
-                    f.write(Scalar_ops.__dict__["Constant_before"](node, res))
-            for var in kwargs:
-                f.write(f"{("v"+str(var._n))} <- {kwargs[var]}\n")
+                    f.write(Scalar_ops.__dict__["Constant_before"](node, res[node]))
+            for i in range(len(kwargs)):
+                f.write(Scalar_ops.__dict__["Constant_before"](f"v{kwargs[i]._n}", RV(Constant(values[i]))))
             f.close()
         
         with open( "model.bug", "w") as f:
@@ -73,10 +72,8 @@ class Sample_prob:
                     code = Scalar_ops.__dict__[res[node].op.name](node, parents)
                     f.write(code + "\n")
                 elif(Multi_funcs.__dict__.get(res[node].op.name) is not None):
-                    if(res[node].op.name == "Sum" or res[node].op.name == "Inv" or res[node].op.name == "Matmul"):
-                        code = Multi_funcs.__dict__[res[node].op.name](node, res, self.calculate_value)
-                    else:
-                        code = Multi_funcs.__dict__[res[node].op.name](node, res)
+                    tmp = [res[node].parents[i] for i in range(len(res[node].parents))]
+                    code = Multi_funcs.__dict__[res[node].op.name](node, res[node].op, parents, tmp)
                     f.write(code + "\n")
             f.write("}\n")                  
             f.close()
@@ -97,22 +94,19 @@ class Sample_prob:
         if system == "Windows":
             jags_path = "C:/Program Files/JAGS/JAGS-4.3.1/x64/bin/jags.bat"
             cmd = f'"{jags_path}" script.txt'
-            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True).decode()
+            subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True).decode()
         else:  # Linux/macOS
             cmd = ['jags', 'script.txt']
-            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode()
-        
-        return(output)
+            subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode()
+        return self.read_coda(sample_vars)
 
-
-    def read_coda(self):
+    def read_coda(self, sample_vars):
         result = {}
 
         # Load MCMC samples
         with open("CODAchain1.txt", "r") as f:
             res_lines = [float(line.strip().split()[1]) for line in f]
 
-        # Regex for v123[1,2,3] or v5 or v12[4]
         pattern = re.compile(r'(v\d+)(?:\[(.*?)\])?')
 
         with open("CODAindex.txt", "r") as f:
@@ -123,37 +117,33 @@ class Sample_prob:
                 name = match.group(1)
                 index_str = match.group(2)
 
-                # Slice values
                 values = res_lines[int(start)-1 : int(end)]
 
-                # Case 1: scalar (no indices)
                 if index_str is None:
                     result[name] = values
                     continue
 
-                # Case 2: multi-dimensional variable
                 indices = list(map(int, index_str.split(",")))
 
-                # Create variable if first time
                 if name not in result:
                     result[name] = []
 
                 arr = result[name]
 
-                # Ensure the list is large enough
                 arr = ensure_size(arr, indices)
 
-                # Navigate to the leaf
                 ref = arr
                 for d in range(len(indices)-1):
                     idx = indices[d] - 1
                     ref[idx] = ensure_size(ref[idx], indices, depth=d+1)
                     ref = ref[idx]
 
-                # Set value at final index
                 ref[indices[-1] - 1] = values
 
                 result[name] = arr
-        return result
+        final = []
+        for var in sample_vars:
+            final.append(result[f"v{var._n}"])
+        return np.array(final)
 
 

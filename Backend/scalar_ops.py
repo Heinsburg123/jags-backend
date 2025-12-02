@@ -1,13 +1,13 @@
 import numpy as np 
 
 class Scalar_ops:
-    def Constant_before(n:str, res):
+    def Constant_before(n:str, node):
         code = ""
-        if res[n].ndim == 0:
-            code += f"{n} <- {res[n].op.value}\n"
+        if node.ndim == 0:
+            code += f"{n} <- {node.op.value}\n"
         else:
             code += f"{n}<-structure(c("
-            arr = np.array(res[n].op.value)
+            arr = np.array(node.op.value)
             flat = arr.flatten(order = 'F')
             for i in range(len(flat)):
                 if(i == len(flat)-1):
@@ -15,11 +15,11 @@ class Scalar_ops:
                 else:
                     code += f"{flat[i]},"
             code += f"),.Dim=c("
-            for i in range(res[n].ndim):
-                if(i == res[n].ndim-1):
-                    code += f"{res[n].shape[i]}))\n"
+            for i in range(node.ndim):
+                if(i == node.ndim-1):
+                    code += f"{node.shape[i]}))\n"
                 else:
-                    code += f"{res[n].shape[i]},"
+                    code += f"{node.shape[i]},"
         return code
     
     def Constant_after(n:str, op):
