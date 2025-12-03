@@ -143,7 +143,7 @@ class flow:
         ans += "  " + code + "}\n"
         return ans
 
-    def Composite(n, op, parents, ite, res, ):
+    def Composite(n, op, parents, ite, res):
         num = op.num_inputs
         ops = op.ops
         par_nums = op.par_nums

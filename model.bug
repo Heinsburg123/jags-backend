@@ -1,9 +1,4 @@
 model {
-for(i0 in 1:2){
-  for(i1 in 1:3){
-  v3[i0,i1] <- v1 + v2[i0,i1]
-}
-
-}
+v3 <- v1 %*% v2
 
 }

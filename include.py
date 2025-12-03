@@ -34,7 +34,7 @@ class Sample_prob:
                 self.dfs(nodes[node])
             return self.visited 
 
-    def sample(self, sample_vars:list[RV], kwargs=[], values = []):
+    def sample(self, sample_vars:list[RV], kwargs=[], values = [], ninter=1000):
         dic = {}
         for var in kwargs:
             dic["v"+str(var._n)] = var
@@ -86,7 +86,7 @@ class Sample_prob:
             script += "update 1000\n"
             for sample_var in sample_vars:
                 script += f"monitor {('v'+str(sample_var._n))}\n"
-            script += "update 2000\n"
+            script += f"update {ninter}\n"
             script += "coda *\n"
             f.write(script)
 

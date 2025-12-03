@@ -1,5 +1,4 @@
 import jax.numpy as jnp
-import pangolin as pg
 from pangolin.ir import *
 from include import Sample_prob
 import numpy as np
@@ -124,11 +123,10 @@ def test_bernoulli():
     y = RV(op, x)
 
     [y_samps] = sp.sample([y], [], [])
-
     # Properties
     assert y_samps.ndim == 1
     assert jnp.logical_or(y_samps == 0, y_samps == 1).all()
-    assert abs(jnp.mean(y_samps) - 0.7) < 0.05
+    assert abs(np.mean(y_samps) - 0.7) < 0.05
 
 
 def test_exponential():
@@ -145,7 +143,7 @@ def test_exponential():
 
     assert y_samps.ndim == 1
     assert (y_samps >= 0).all()
-    assert abs(jnp.mean(y_samps) - (1.0 / 0.7))
+    assert abs(np.mean(y_samps) - (1.0 / 0.7))
 
 
 def test_add_normal():
@@ -164,7 +162,7 @@ def test_add_normal():
     [z_samps] = sp.sample([z], [], [])
 
     assert z_samps.ndim == 1
-    assert abs(jnp.mean(z_samps) - 0.4) < 0.05
+    assert abs(np.mean(z_samps) - 0.4) < 0.05
 
 def test_handle_nonrandom_exp():
     sp = Sample_prob()
@@ -219,3 +217,176 @@ def test_handle_nonrandom_add_2d():
 
     expected = x.op.value + y_val
     assert jnp.allclose(z_samps[:, :, 0], expected)
+
+def test_repeated_exp_sample_prob():
+    sp = Sample_prob()
+    length = 5
+    x = RV(Constant(0.1))
+    op = Autoregressive(Exp(), length, in_axes=[])
+    y = RV(op, x)
+
+    # Compute expected deterministically
+    last = 0.1
+    expected = []
+    for _ in range(length):
+        last = np.exp(last)
+        expected.append(last)
+    expected = np.array(expected)
+
+    [y_samps] = sp.sample([y], [], [])
+    assert np.allclose(y_samps[:,0], expected)
+
+
+def test_repeated_exp_with_dummy_sample_prob():
+    sp = Sample_prob()
+    length = 5
+    x = RV(Constant(0.1))
+    y = RV(Autoregressive(Exp(), length, in_axes=[]), x)
+    dummy = RV(Normal(), x, x)
+
+    last = 0.1
+    expected = []
+    for _ in range(length):
+        last = np.exp(last)
+        expected.append(last)
+    expected = np.array(expected)
+
+    [y_samps] = sp.sample([y], [dummy], [0.1])
+    assert np.allclose(y_samps[:,0], expected)
+
+def test_autoregressive_simple():
+    sp = Sample_prob()
+    x = RV(Constant(0.5))
+    length = 12
+
+    base = Composite(
+        num_inputs=2,
+        ops=[Constant(1.0), Add(), Normal()],
+        par_nums=[[], [0, 2], [3, 1]] 
+    )
+
+    noise = RV(Constant(1e-4))
+    op = Autoregressive(base, length, in_axes=[None], where_self=0)
+    y = RV(op, x, noise)
+
+    expected = 0.5 + np.arange(1, length + 1)
+
+    [ys] = sp.sample([y], [], [])
+    last_y = ys[:, 0]
+    assert np.allclose(last_y, expected, atol=0.1)
+
+def test_autoregressive_const_rv_mapped():
+    sp = Sample_prob()
+    x = RV(Constant(0.5))
+    length = 12
+    noises = RV(Constant(np.random.rand(length)))
+
+    op = Autoregressive(Normal(), length, in_axes=(0,), where_self=0)
+    y = RV(op, x, noises)
+
+    [ys] = sp.sample([y], [], [])
+    assert ys.shape[0] == length
+
+def test_autoregressive_const_rv_unmapped():
+    sp = Sample_prob()
+    x = RV(Constant(0.5))
+    length = 12
+    noise = RV(Constant(1e-4))
+
+    op = Autoregressive(Normal(), length, in_axes=(None,), where_self=0)
+    y = RV(op, x, noise)
+
+    [ys] = sp.sample([y], [], [])
+    assert ys.shape[0] == length
+
+def test_autoregressive_simple_const_rv():
+    sp = Sample_prob()
+    x = RV(Constant(0.5))
+    length = 12
+    noise = RV(Constant(1e-4))
+
+    base = Composite(
+        2,
+        [Constant(1), Add(), Normal()],
+        [[], [0, 2], [3, 1]]
+    )
+    op = Autoregressive(base, length, in_axes=[None], where_self=0)
+    y = RV(op, x, noise)
+
+    expected = 0.5 + np.arange(1, length + 1)
+
+    [ys] = sp.sample([y], [], [])
+    last_y = ys[:, 0]
+
+    assert np.allclose(last_y, expected, atol=0.1)
+
+def test_autoregressive_nonrandom():
+    sp = Sample_prob()
+    p1 = RV(Constant(0))
+    p2 = RV(Constant(1e-5))
+    x = RV(Normal(), p1, p2)
+    length = 12
+
+    op = Autoregressive(Add(), length, in_axes=[None], where_self=0)
+    increment = RV(Constant(1.0))
+    y = RV(op, x, increment)
+
+    expected = np.arange(1, length + 1)
+
+    [ys] = sp.sample([y], [], [])
+    last_y = ys[:, 0]
+
+    assert np.allclose(last_y, expected, atol=0.1)
+
+def test_autoregressive_varying_increments():
+    sp = Sample_prob()
+    x = RV(Constant(0.0))
+    length = 12
+
+    increments = np.random.randn(length)
+    inc_rv = RV(Constant(increments))
+    noise_rv = RV(Constant(1e-4))
+    base = Composite(
+        num_inputs=3,                          
+        ops=[Add(), Normal()],                
+        par_nums=[
+            [0, 1],    # Add(last, inc)
+            [3, 2],    # Normal(mean, noise)
+        ],
+    )
+
+    op = Autoregressive(
+        base_op=base,
+        length=length,
+        in_axes=[0, None],
+        where_self=0,
+    )
+
+    y = RV(op, x, inc_rv, noise_rv)
+
+    expected = np.cumsum(increments)
+
+    [ys] = sp.sample([y], [], [])
+    last_y = ys[:, 0]
+
+    assert np.allclose(last_y, expected, atol=0.1)
+
+def test_autoregressive_matmul():
+    sp = Sample_prob()
+    ndim = 5
+    x0 = np.random.randn(ndim)
+    length = 5
+    noise = RV(Constant(1e-5))
+    x = RV(VMap(Normal(), in_axes=[0,None], axis_size=ndim), RV(Constant(x0)), noise)
+    A = np.random.randn(ndim, ndim)
+    y = RV(Autoregressive(base_op = Matmul(), length=length, in_axes=[None], where_self=1), RV(Constant(A)), x)
+
+    expected = []
+    last = x0
+    for i in range(length):
+        last = A @ last
+        expected.append(last)
+
+    [ys] = sp.sample([y], [], [])
+    final_vals = ys[:, :,0]
+    assert np.allclose(final_vals, expected, atol=0.1)

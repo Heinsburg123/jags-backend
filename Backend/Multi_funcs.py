@@ -4,7 +4,35 @@ from  Backend.scalar_ops import Scalar_ops
 
 class Multi_funcs:
     def Matmul(n, op, parents, res):
-        return f"{n} <- v{parents[0]} %*% v{parents[1]}\n"
+        shape = op.get_shape(res[0].shape, res[1].shape)
+        idd = n.find('[')
+        idd2 = parents[0].find('[')
+        idd3 = parents[1].find('[')
+        if(idd != -1):
+            if(len(shape)==1):
+                name = n[:-1]+f",1:{shape[0]}]"
+            else:
+                name = n[:-1]+f",1:{shape[0]}, 1:{shape[1]}]"
+        else:
+            name = n
+
+        if(idd2 != -1):
+            if(len(res[0].shape)==1):
+                name2 = parents[0][:-1]+f",1:{res[0].shape[0]}]"
+            else:
+                name2 = parents[0][:-1]+f",1:{res[0].shape[0]}, 1:{res[0].shape[1]}]"
+        else:
+            name2 = parents[0]
+
+        if(idd3 != -1):
+            if(len(shape)==1):
+                name3 = parents[1][:-1]+f",1:{res[1].shape[0]}]"
+            else:
+                name3 = parents[1][:-1]+f",1:{res[1].shape[0]}, 1:{res[1].shape[1]}]"
+        else:
+            name3 = parents[1]
+
+        return f"{name} <- {name2} %*% {name3}\n"
 
     def Sum(n, op, parents, res):
         code = ""
@@ -45,30 +73,74 @@ class Multi_funcs:
         k = res[0].shape[0]
         idd = n.find('[')
         if(idd == -1):
-            name1 = f"{n}_1"
-            name2 = f"{n}_2"
+            name1 = f"{n}_1"+n[idd:]+"[j]"
+            name2 = f"{n}_2"+n[idd:]
+            name3 = f"{n}[j]"
+            tmp = f"{n}_1"+n[idd:]+"[]"
         else:
-            name1 = n[:idd]+f"_1"+n[idd:]
+            name1 = n[:idd]+f"_1"+n[idd:-1]+",j]"
             name2 = n[:idd]+f"_2"+n[idd:]
+            name3 = n[:-1]+",j]"
+            tmp = f"{n}_1"+n[idd:-1]+",]"
+        idd2 = parents[0].find('[')
+        if(idd2 == -1):
+            par_name = f"{parents[0]}[j]"
+        else:
+            par_name = f"{parents[0][:-1]}[j]"
         code = ""
-        code += f"for (i in 1:{k})"+"{\n"
-        code += f"  {name1}[i] <-exp(v{parents[0]}[i])\n"+"}\n"
-        code += f"{name2} <- sum({name1}[])\n"
-        code += f"for (i in 1:{k})" + "{\n"
-        code += f"  {n}[i] <- {name1}[i]/{name2}\n" + "}\n"
+        code += f"for (j in 1:{k})"+"{\n"
+        code += f"  {name1} <-exp(v\{par_name})\n"+"}\n"
+        code += f"{name2} <- sum({tmp})\n"
+        code += f"for (j in 1:{k})" + "{\n"
+        code += f"  {name3} <- {name1}/{name2}\n" + "}\n"
         return code
     
     def MultiNormal(n, op, parents, res):
         p = res[0].shape[0]
-        return f"{n}[1:{p}] ~ dmnorm(v{parents[0]}[1:{p}], inverse(v{parents[1]}[1:{p},1:{p}]))"
+        idd1 = n.find('[')
+        idd2 = parents[0].find('[')
+        idd3 = parents[1].find('[')
+        if(idd1==-1):
+            name1 = f"{n}[1:{p}]"
+        else:
+            name1 = n[:-1]+f",1:{p}]"
+        if(idd2==-1):
+            name2 = f"{parents[0]}[1:{p}]"
+        else:
+            name2 = parents[0][:-1]+f",1:{p}]"
+        if(idd3==-1):
+            name3 = f"{parents[1]}[1:{p},1:{p}]"
+        else:
+            name3 = parents[1][:-1]+f",1:{p},1:{p}]"
+        return f"{name1} ~ dmnorm({name2}, inverse({name3}))"
     
     def Multinomial(n, op, parents, res):
         p = res[1].shape[0]
-        return f"{n}[1:{p}] ~ dmulti(v{parents[1]}[1:{p}], v{parents[0]._n})"
+        idd1 = n.find('[')
+        idd3 = parents[1].find('[')
+        if(idd1==-1):
+            name1 = f"{n}[1:{p}]"
+        else:
+            name1 = n[:-1]+f",1:{p}]"
+        if(idd3==-1):
+            name3 = f"{parents[1]}[1:{p}]"
+        else:
+            name3 = parents[1][:-1]+f",1:{p}]"
+        return f"{name1} ~ dmulti({name3}, {parents[0]})"
 
     def Dirichlet(n, op, parents, res):
         p = res[0].shape[0]
-        return f"{n}[1:{p}] ~ ddirch(v{parents[0]}[1:{p}])"
+        idd1 = n.find('[')
+        idd2 = parents[0].find('[')
+        if(idd1==-1):
+            name1 = f"{n}[1:{p}]"
+        else:
+            name1 = n[:-1]+f",1:{p}]"
+        if(idd2==-1):
+            name2 = f"{parents[0]}[1:{p}]"
+        else:
+            name2 = parents[0][:-1]+f",1:{p}]"
+        return f"{name1} ~ ddirch({name2})"
 
 
     
