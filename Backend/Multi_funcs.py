@@ -89,7 +89,7 @@ class Multi_funcs:
             par_name = f"{parents[0][:-1]}[j]"
         code = ""
         code += f"for (j in 1:{k})"+"{\n"
-        code += f"  {name1} <-exp(v\{par_name})\n"+"}\n"
+        code += f"  {name1} <-exp({par_name})\n"+"}\n"
         code += f"{name2} <- sum({tmp})\n"
         code += f"for (j in 1:{k})" + "{\n"
         code += f"  {name3} <- {name1}/{name2}\n" + "}\n"

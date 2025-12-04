@@ -144,6 +144,8 @@ class Sample_prob:
         final = []
         for var in sample_vars:
             final.append(result[f"v{var._n}"])
-        return np.array(final)
+        for i in range(len(final)):
+            final[i] = np.array(final[i])
+        return final
 
 

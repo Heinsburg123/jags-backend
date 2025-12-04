@@ -4,5 +4,7 @@ compile, nchains(1)
 initialize
 update 1000
 monitor v3
+monitor v5
+monitor v8
 update 1000
 coda *
