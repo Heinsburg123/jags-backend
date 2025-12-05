@@ -1,5 +1,5 @@
 model {
-v3[1:4] ~ dmnorm(v1[1:4], inverse(v2[1:4,1:4]))
-v5[1:5] ~ ddirch(v4[1:5])
-v8[1:4] ~ dmulti(v7[1:4], v6)
+v3 ~ dcat(v2)
+v5 ~ dcat(v4)
+v6<-v1[v3,v5]
 }
