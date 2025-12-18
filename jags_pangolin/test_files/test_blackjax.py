@@ -1,6 +1,6 @@
 import jax.numpy as jnp
 from pangolin.ir import *
-from include import Sample_prob
+from jags_pangolin import Sample_prob
 import numpy as np
 
 def test_simple():

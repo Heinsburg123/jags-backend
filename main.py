@@ -1,6 +1,6 @@
 import pangolin as pg
 from pangolin.ir import *
-from include import Sample_prob
+from jags_pangolin.src.engine import Sample_prob
 import numpy as np
 
 

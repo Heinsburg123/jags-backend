@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from pangolin.ir import *
-from include import Sample_prob  
+from jags_pangolin import Sample_prob  
 from scipy.special import gammaln
 
 rng = np.random.default_rng()

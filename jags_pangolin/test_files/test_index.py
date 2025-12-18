@@ -1,6 +1,6 @@
 import numpy as np
 from pangolin.ir import *
-from include import Sample_prob  
+from jags_pangolin.src.engine import Sample_prob  
 
 
 def test_simple_index_scalar_indices():
