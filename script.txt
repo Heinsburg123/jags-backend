@@ -1,8 +1,0 @@
-model in "model.bug"
-data in "data.R"
-compile, nchains(1)
-initialize
-update 1000
-monitor v6
-update 1000
-coda *

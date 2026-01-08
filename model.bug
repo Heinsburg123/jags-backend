@@ -1,5 +1,0 @@
-model {
-v3 ~ dcat(v2)
-v5 ~ dcat(v4)
-v6<-v1[v3,v5]
-}
